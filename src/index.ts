@@ -1,6 +1,6 @@
 import { Feature, GeoJsonProperties, Point, LineString, Polygon } from 'geojson';
 import { DOMParser } from 'xmldom';
-const crypto = require('crypto');
+import { v4 as uuid } from 'uuid';
 
 export interface KmlFolder {
     folder_id: string;
@@ -185,7 +185,7 @@ export class KmlToGeojson {
 
             geometries.push({
                 type: 'Feature',
-                id: crypto.randomUUID(),
+                id: uuid(),
                 geometry: {
                     type: geometry_type,
                     coordinates
@@ -247,7 +247,7 @@ export class KmlToGeojson {
 
             geometries.push({
                 type: 'Feature',
-                id: crypto.randomUUID(),
+                id: uuid(),
                 geometry: {
                     type: geometry_type,
                     coordinates
@@ -309,7 +309,7 @@ export class KmlToGeojson {
 
             geometries.push({
                 type: 'Feature',
-                id: crypto.randomUUID(),
+                id: uuid(),
                 geometry: {
                     type: geometry_type,
                     coordinates
@@ -327,7 +327,7 @@ export class KmlToGeojson {
         const name_node = this.get1(node, 'name');
 
         return {
-            folder_id: crypto.randomUUID(),
+            folder_id: uuid(),
             name: name_node?.textContent ?? 'Untitled folder',
             parent_folder_id
         }
