@@ -110,7 +110,7 @@ export class KmlToGeojson {
                 return arr;
             }
             else if (geometry_type === 'LineString' || geometry_type === 'Polygon') {
-                const splits = text_content.trim().split(' ');
+                const splits = text_content.trim().split(/\s+/);
 
                 return splits.map(coordinate => {
                     const split = coordinate.trim().split(',');
