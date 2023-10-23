@@ -95,25 +95,13 @@ export class KmlToGeojson {
         const geometries = [];
 
         const getCoordinates = (node: Element, geometry_type: 'Point' | 'LineString' | 'Polygon') => {
-            const coordinates_node = this.get1(node, 'coordinates')!;
-            const text_content = coordinates_node.textContent!;
+            const coordinates_nodes = this.get(node, 'coordinates'); //Array of coordinate elements
 
-            if (geometry_type === 'Point') {
-                const split = text_content.split(',');
-                const longitude = parseFloat(split[0]);
-                const latitude = parseFloat(split[1]);
-                const altitude = split.length > 2 ? parseFloat(split[2]) : 0;
-
-                const arr = [longitude, latitude];
-                if (this.include_altitude) arr.push(altitude);
-
-                return arr;
-            }
-            else if (geometry_type === 'LineString' || geometry_type === 'Polygon') {
-                const splits = text_content.trim().split(/\s+/);
-
-                return splits.map(coordinate => {
-                    const split = coordinate.trim().split(',');
+            if ( coordinates_nodes.length > 0 ) {
+                if (geometry_type === 'Point') {
+                    const text_content = coordinates_nodes[0].textContent || '';
+                    
+                    const split = text_content.split(',');  // Only one coordinate, because it's a point
                     const longitude = parseFloat(split[0]);
                     const latitude = parseFloat(split[1]);
                     const altitude = split.length > 2 ? parseFloat(split[2]) : 0;
@@ -121,10 +109,44 @@ export class KmlToGeojson {
                     const arr = [longitude, latitude];
                     if (this.include_altitude) arr.push(altitude);
 
-                    return arr
-                });
-            }
+                    return arr;
+                }
+                else if (geometry_type === 'LineString' ) {
+                    const text_content = coordinates_nodes[0].textContent || '';
+                    const splits = text_content.trim().split(/\s+/);    // Split sets of coordinates by whitespace first
 
+                    return splits.map(coordinate => {
+                        const split = coordinate.trim().split(',');     // Then split each coordinate up by comma
+                        const longitude = parseFloat(split[0]);
+                        const latitude = parseFloat(split[1]);
+                        const altitude = split.length > 2 ? parseFloat(split[2]) : 0;
+
+                        const arr = [longitude, latitude];
+                        if (this.include_altitude) arr.push(altitude);
+
+                        return arr
+                    });
+                }
+                else if (geometry_type === 'Polygon') {
+                    return coordinates_nodes.map((coordinate_node) => { // May have multiple rings.
+                                                                        // Even if there IS only one ring, we
+                                                                        // still want an array of sets of coordinates
+                        const splits = (coordinate_node.textContent || '').trim().split(/\s+/);
+
+                        return splits.map(coordinate => {
+                            const split = coordinate.trim().split(',');
+                            const longitude = parseFloat(split[0]);
+                            const latitude = parseFloat(split[1]);
+                            const altitude = split.length > 2 ? parseFloat(split[2]) : 0;
+
+                            const arr = [longitude, latitude];
+                            if (this.include_altitude) arr.push(altitude);
+
+                            return arr
+                        });
+                    })
+                }
+            }
 
             const arr = [0, 0];
             if (this.include_altitude) arr.push(0);
@@ -333,18 +355,14 @@ export class KmlToGeojson {
         }
     }
 
-    private geometryIsValid(coordinates: number[] | number[][]) {
+    private geometryIsValid(coordinates: number[] | number[][] | number[][][], iteration:number = 1):boolean {
+        // Can't have 4+ levels of array nesting for geometry
+        if ( iteration > 3 ) return false;
+
         for (const item of coordinates) {
-            if (Array.isArray(item)) {
-                for (const item2 of item) {
-                    if (isNaN(item2)) {
-                        console.log('[kml-to-geojson] Geometry is invalid: ');
-                        console.log(JSON.stringify(coordinates));
-                        return false;
-                    }
-                }
-            }
-            else {
+            if (Array.isArray(item) ) {
+                return this.geometryIsValid(item, iteration++ )
+            } else {
                 if (isNaN(item)) {
                     console.log('[kml-to-geojson] Geometry is invalid: ');
                     console.log(JSON.stringify(coordinates));
